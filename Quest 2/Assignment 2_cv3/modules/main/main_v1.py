@@ -17,35 +17,36 @@ class main_v1:
         self.globals.motProxy.rest()
         # self.globals.posProxy.goToPosture("Stand", 1)
         self.tools.cSubscribe()
+
+
         img, pos = self.tools.getSnapshot()
+
         self.tools.SaveImage("test_image.jpg", img)
 
-        # bw_img_blue = self.vision.filterImage(img, [90,0,0],[255,100,100])
-        # bw_img_green = self.vision.filterImage(img, [0,90,0],[100,255,100])
-        # bw_img_red = self.vision.filterImage(img, [0,0,170], [95,130,255])
+        amount_of_blobs, coords, imagearray, found_img = self.vision.getBlobsData(img)
 
-        # bw_img_blue = self.vision.filterImage(img, [45,0,0],[255,100,100])
-        # bw_img_green = self.vision.filterImage(img, [0,45,0],[100,255,100])
-        # bw_img_red = self.vision.filterImage(img, [0,0,130], [95,130,255])
 
-        # bw_img = bw_img_blue + bw_img_green + bw_img_red
+        if amount_of_blobs > 0:
 
-        # circles = self.vision.findCircle(bw_img)
+            # print(len(found_img), len(found_img[0]))
+            # print(len(imagearray), len(imagearray[0]))
 
-        # found_img = self.vision.drawCircles(circles)
-        # self.tools.SaveImage("test_bw_image.jpg", bw_img)
-        # self.tools.SaveImage("test_image_found_circles.jpg", found_img)
+            try:
+                self.tools.SaveImage("test_bw_image.jpg", imagearray)
+                self.tools.SaveImage("test_image_found_circles.jpg", found_img)
+            except:
+                print("Opslaan niet gelukt")
 
-        amount_of_blobs, coords, imagearray = self.vision.getBlobsData(img)
+            Distance = self.vision.calcAvgBlobDistance(coords)
+            center = self.vision.calcMidLandmark(coords)
+            angle = self.vision.calcAngleLandmark(center)
+            foo = self.vision.findSignature(coords)
+            print(coords, Distance, center, angle, foo)
 
-        Distance = self.vision.calcAvgBlobDistance(coords)
-        center = self.vision.calcMidLandmark(coords)
-        angle = self.vision.calcAngleLandmark(center)
-        foo = self.vision.findSignature(coords)
-        print(coords, Distance, center, angle, foo)
-
-        
-        self.globals.motProxy.rest()
+            
+            self.globals.motProxy.rest()
+        else:
+            print("No blobs")
         
 
 
