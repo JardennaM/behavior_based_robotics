@@ -26,8 +26,8 @@ class main_v1:
         amount_of_blobs, coords, imagearray, found_img = self.vision.getBlobsData(img)
 
 
+     
         if amount_of_blobs > 0:
-
             # print(len(found_img), len(found_img[0]))
             # print(len(imagearray), len(imagearray[0]))
 
@@ -45,6 +45,7 @@ class main_v1:
 
             
             self.globals.motProxy.rest()
+        
         else:
             print("No blobs")
         
