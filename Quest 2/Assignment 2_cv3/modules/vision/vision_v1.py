@@ -162,8 +162,9 @@ class vision_v1():
         print(in_bounds_blobs)
         # Radius check for all blobs
         mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
-    
-        if mean_blobs != 1:
+        total_blobs = sum(mean_blobs)
+
+        if mean_blobs != 1 and total_blobs == 4:
             print("AVERAGE IS NOT EQUAL TO ONE. LOOKING FOR PLAUSIBLE BLOB COMBINATIONS")
             ps = list(product(*in_bounds_blobs))
             plausible_blobLists = []
@@ -186,8 +187,9 @@ class vision_v1():
                 print("No plausible blobs found")
                 return 0, [], None, None
             else:
-                blobsList = np.asarray([plausible_blobLists[0][0], plausible_blobLists[0][1], plausible_blobLists[0][2]])
-
+                blobsList = np.asarray([[plausible_blobLists[0][0]], [plausible_blobLists[0][1]], [plausible_blobLists[0][2]]])
+        elif total_blobs != 3:
+            return 0, [], None, None
         else:
             # Create bloblist
             blobsList = np.asarray([in_bounds_blobs[0][0], in_bounds_blobs[1][0], in_bounds_blobs[2][0]])
