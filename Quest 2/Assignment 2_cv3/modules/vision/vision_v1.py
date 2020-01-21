@@ -1,7 +1,7 @@
 import cv2
 import numpy, math
 import numpy as np
-from itertools import combinations
+from itertools import combinations, product
 
 def cv2_wait():
     key = cv2.waitKey(-1) & 0xFF
@@ -156,7 +156,10 @@ class vision_v1():
             if legal_blobs == []:
                 return 0, [], None, None
             in_bounds_blobs.append(np.asarray(legal_blobs))
-
+        
+        
+        np.append(in_bounds_blobs[1], [40, 20, 49])
+        print(in_bounds_blobs)
         # Radius check for all blobs
         mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
     
@@ -167,7 +170,7 @@ class vision_v1():
             for p in ps:
                 blue, green, red = p
                 coords = [blue[:2], green[:2], red[:2]]
-                center = calcMidLandmark(coords)
+                center = self.calcMidLandmark(coords)
                 
                 DistFromCenter = self.calcDistanceFromCenter(coords, center)
                 std_DistanceFromCenter = np.std(DistFromCenter)
@@ -183,11 +186,12 @@ class vision_v1():
                 print("No plausible blobs found")
                 return 0, [], None, None
             else:
-                in_bounds_blobs = [plausible_blobLists[0][0], plausible_blobLists[0][1], plausible_blobLists[0][2]]
+                blobsList = np.asarray([plausible_blobLists[0][0], plausible_blobLists[0][1], plausible_blobLists[0][2]])
 
+        else:
+            # Create bloblist
+            blobsList = np.asarray([in_bounds_blobs[0][0], in_bounds_blobs[1][0], in_bounds_blobs[2][0]])
 
-        # Create bloblist
-        blobsList = np.asarray(in_bounds_blobs[0][0], in_bounds_blobs[1][0], in_bounds_blobs[2][0] )
         blobsFound = len(blobsList)
         print(blobsList)
 
@@ -245,7 +249,7 @@ class vision_v1():
         return np.sum(blobList, 0) / len(blobList)
 
     def calcDistanceFromCenter(self, blobList, center):
-    '''
+        '''
         Input: [Pink, Blue, Orange]
         Output: Avarege Distance in pixels per blob
         '''
