@@ -2,7 +2,7 @@ import cv2
 # import cv2.cv as cv
 import numpy, math
 import numpy as np
-from itertools import combinations
+from itertools import combinations, product
 # from naoqi import ALProxy
 import time
 import sys
@@ -61,7 +61,7 @@ def getBlobsData(image):
     '''
 
     # Filter blue circle
-    bw_img_blue = filterImage(image, [90,0,0],[255,100,100])
+    bw_img_blue = filterImage(image, [70,0,0],[255,100,100])
     blueBlobs = findCircle(bw_img_blue)
 
     # Check wether blue circle was found
@@ -69,7 +69,7 @@ def getBlobsData(image):
         blueLen = len(blueBlobs)
     except:
         print("No blue circles found")
-        return 0, None, None, None
+        return 0, [], bw_img_blue, bw_img_blue
 
     # Cut out section with blobs from picture
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -103,25 +103,29 @@ def getBlobsData(image):
     cv2.floodFill(mask, mask2, tuple(blueBlobs[0][:2]), 0)
     image[mask.astype(np.bool), :] = 0
     
+    cv2.imshow("string", image)
+    
     # Filter for green blobs
-    bw_img_green = filterImage(image, [0,90,0],[100,255,100])
-    greenBlobs = findCircle(bw_img_green)
+    bw_img_green =  filterImage(image, [0,90,0],[100,255,100])
+    greenBlobs =  findCircle(bw_img_green)
 
     # Filter for red blobs
-    bw_img_red = filterImage(image, [0,0,170], [95,130,255])
-    redBlobs = findCircle(bw_img_red)
+    bw_img_red =  filterImage(image, [0,0,170], [95,130,255])
+    redBlobs =  findCircle(bw_img_red)
 
+    ########## OPTIONAL ###############
     # Add all filtered images for total black/white image
-    imagearray = bw_img_blue + bw_img_green + bw_img_red
+    filter_image = bw_img_blue + bw_img_green + bw_img_red
 
-    # Check wether green or red circle was found
-    try:
-        greenLen = len(greenBlobs)
-        redLen = len(redBlobs)
-    except:
-        print("No green circles found")
-        return 0, None, None, None
+    # Check wether green and red circle was found
+    # try:
+    #     greenLen = len(greenBlobs)
+    #     redLen = len(redBlobs)
+    # except:
+    #     print("No green circles found")
+    #     return 0, [], filter_image, filter_image
 
+    # Temporary prints for amount of blobs
     # print("Amount of blue blobs:", len(blueBlobs), blueBlobs)
     # print("Amount of green blobs:", len(greenBlobs), greenBlobs)
     # print("Amount of red blobs:", len(redBlobs), redBlobs)
@@ -130,38 +134,82 @@ def getBlobsData(image):
     image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
 
     # Find all blobs in dimensions of picture
-    in_bounds_blobs = []
-    for blobList in [blueBlobs, greenBlobs, redBlobs]:
-        legal_blobs = []
-        for blob in blobList:
-            blob_dim = blob[:2]
-            # Blob out of bounds
-            if blob_dim[0] > image_dim[0] or blob_dim[1] > image_dim[1]:
-                continue
-            # Legal blob
-            else:
-                legal_blobs.append(blob)
-        # No legal blobs found of certain colour
-        if legal_blobs == []:
-            return 0, [], None, None
-        in_bounds_blobs.append(legal_blobs)
-
-    # Radius check for all blobs
+    # in_bounds_blobs = []
+    # for blobList in [blueBlobs, greenBlobs, redBlobs]:
+    #     legal_blobs = []
+    #     for blob in blobList:
+    #         blob_dim = blob[:2]
+    #         # Blob out of bounds
+    #         if blob_dim[0] > image_dim[0] or blob_dim[1] > image_dim[1]:
+    #             continue
+    #         # Legal blob
+    #         else:
+    #             legal_blobs.append(blob)
+    #     # No legal blobs found of certain colour
+    #     if legal_blobs == []:
+    #         return 0, [], None, None
+    #     in_bounds_blobs.append(tuple(legal_blobs))
+    in_bounds_blobs = np.asarray([[[251., 83., 17.8]], [[209., 49., 19.2], [135., 213., 57.9]], [[193., 113., 17.4]]])
+    print(in_bounds_blobs)
+    # # Radius check for all blobs
     mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
+    
     if mean_blobs != 1:
+        ps = list(product(*in_bounds_blobs))
+        plausible_blobLists = []
+        for p in ps:
+            p_score = 0
+            print("-------------------------------------------------------------------------------")
+            print(p)
+            blue, green, red = p
+            coords = [blue[:2], green[:2], red[:2]]
+            radius = [blue[2], green[2], red[2]]
+            center = calcMidLandmark(coords)
+            print("center", center)
+            
+            DistFromCenter = calcDistanceFromCenter(coords, center)
+            std_DistanceFromCenter = np.std(DistFromCenter)
+            print("Distances from center", DistFromCenter)
+            print("Standard deviation", np.std(DistFromCenter))
+
+            if std_DistanceFromCenter > max(DistFromCenter) * 0.2:
+                continue
+
+            else:
+                plausible_blobLists.append(p)
+            
+
+        if len(plausible_blobLists) != 1:
+            return 0, [], None, None
+        else:
+            in_bounds_blobs = [plausible_blobLists[0][0], plausible_blobLists[0][1], plausible_blobLists[0][2]]
+
+    print(in_bounds_blobs)
+    print(blabla)
+
+    # if blueLen != 1 or greenLen != 1 or redLen != 1:
+    #     return 0, [], None, None
     
         
-        total = np.sum(in_bounds_blobs, axis=0)
-        total = np.sum(total, axis=0)
-        total = np.sum(total, axis=0)
-        print("Sum of blobs", total)
+    #     total = np.sum(in_bounds_blobs, axis=0)
+    #     total = np.sum(total, axis=0)
+    #     total = np.sum(total, axis=0)
+    #     print("Sum of blobs", total)
 
-    blobsList = np.asarray(in_bounds_blobs)
+
+    # Create bloblist
+    blobsList = np.asarray(in_bounds_blobs[0][0], in_bounds_blobs[1][0], in_bounds_blobs[2][0] )
     blobsFound = len(blobsList)
+    print(blobsList)
 
-    found_img = drawCircles(blobsList)
+    ########## OPTIONAL ###############
+    # Make reconstruction of black/white blobs
+    try: 
+        found_image =  self.drawCircles(blobsList)
         
-    return blobsFound, blobsList[:, :2], imagearray, found_img
+    except:
+        found_image = filter_image
+    return blobsFound, blobsList[:, :2], filter_image, found_image
 
 def drawCircles(circle_data):
     if circle_data != []:
@@ -174,6 +222,46 @@ def drawCircles(circle_data):
         return img
     else:
         print "NO CIRCLES"
+
+# Get Average Distance between multiple blobs
+def calcAvgBlobDistance(blobList):
+    '''
+    Input: [Pink, Blue, Orange]
+    Output: Avarege Distance in pixels
+    '''
+
+    # Check if there are enough blobs
+    if len(blobList) == 0 or len(blobList) == 1:
+        return None
+    Distance = 0
+    total_combinations = 0
+    
+    # Adds up distances of all possible combinations
+    combs = combinations(blobList, 2)
+    for comb in combs:
+        Distance += numpy.linalg.norm(comb[0] - comb[1])  
+        total_combinations += 1         
+
+    # Calculate average distance
+    Distance /= total_combinations
+    return Distance
+
+def calcDistanceFromCenter(blobList, center):
+    '''
+    Input: [Pink, Blue, Orange]
+    Output: Avarege Distance in pixels per blob
+    '''
+    return [numpy.linalg.norm(blob - center) for blob in blobList]
+
+# Find centre of a Landmark
+def calcMidLandmark(blobList):
+    '''
+    Input: [Pink, Blue, Orange]
+    Output: center pixel as (x,y)
+    '''
+    if blobList == []:
+        return []
+    return np.sum(blobList, 0) / len(blobList)
 
 def main():
     image = cv2.imread("test_image.jpg")

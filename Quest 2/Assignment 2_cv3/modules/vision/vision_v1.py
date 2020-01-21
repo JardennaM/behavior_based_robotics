@@ -46,7 +46,7 @@ class vision_v1():
         minD = 30  
         p1 = 255
         p2 = 27
-        minS = 15
+        minS = 10
         maxS = 70
         circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, dp, minD, None, p1, p2, minS, maxS)
 
@@ -157,18 +157,33 @@ class vision_v1():
                 return 0, [], None, None
             in_bounds_blobs.append(np.asarray(legal_blobs))
 
-        print(in_bounds_blobs)
-        # # Radius check for all blobs
-        # mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
-        # if mean_blobs != 1:
-        if blueLen != 1 or greenLen != 1 or redLen != 1:
-            return 0, [], None, None
-        
-            
-        #     total = np.sum(in_bounds_blobs, axis=0)
-        #     total = np.sum(total, axis=0)
-        #     total = np.sum(total, axis=0)
-        #     print("Sum of blobs", total)
+        # Radius check for all blobs
+        mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
+    
+        if mean_blobs != 1:
+            print("AVERAGE IS NOT EQUAL TO ONE. LOOKING FOR PLAUSIBLE BLOB COMBINATIONS")
+            ps = list(product(*in_bounds_blobs))
+            plausible_blobLists = []
+            for p in ps:
+                blue, green, red = p
+                coords = [blue[:2], green[:2], red[:2]]
+                center = calcMidLandmark(coords)
+                
+                DistFromCenter = self.calcDistanceFromCenter(coords, center)
+                std_DistanceFromCenter = np.std(DistFromCenter)
+
+                if std_DistanceFromCenter > max(DistFromCenter) * 0.2:
+                    continue
+
+                else:
+                    plausible_blobLists.append(p)
+                
+
+            if len(plausible_blobLists) != 1:
+                print("No plausible blobs found")
+                return 0, [], None, None
+            else:
+                in_bounds_blobs = [plausible_blobLists[0][0], plausible_blobLists[0][1], plausible_blobLists[0][2]]
 
 
         # Create bloblist
@@ -228,6 +243,13 @@ class vision_v1():
         if blobList == []:
             return []
         return np.sum(blobList, 0) / len(blobList)
+
+    def calcDistanceFromCenter(self, blobList, center):
+    '''
+        Input: [Pink, Blue, Orange]
+        Output: Avarege Distance in pixels per blob
+        '''
+        return [numpy.linalg.norm(blob - center) for blob in blobList]
 
     # Find the angle between a found Landmark and the Nao
     def calcAngleLandmark(self, center):
