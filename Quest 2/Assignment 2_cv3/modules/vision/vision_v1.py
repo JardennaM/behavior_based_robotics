@@ -335,8 +335,8 @@ class vision_v1():
         '''
 
         # Filter blue circle
-        bw_img_blue = self.vision.filterImage(image, [90,0,0],[255,100,100])
-        blueBlobs = self.vision.findCircle(bw_img_blue)
+        bw_img_blue = self.filterImage(image, [90,0,0],[255,100,100])
+        blueBlobs = self.findCircle(bw_img_blue)
 
         # Check wether blue circle was found
         try:
@@ -378,12 +378,12 @@ class vision_v1():
         image[mask.astype(np.bool), :] = 0
         
         # Filter for green blobs
-        bw_img_green =  self.vision.filterImage(image, [0,90,0],[100,255,100])
-        greenBlobs =  self.vision.findCircle(bw_img_green)
+        bw_img_green =  self.filterImage(image, [0,90,0],[100,255,100])
+        greenBlobs =  self.findCircle(bw_img_green)
 
         # Filter for red blobs
-        bw_img_red =  self.vision.filterImage(image, [0,0,170], [95,130,255])
-        redBlobs =  self.vision.findCircle(bw_img_red)
+        bw_img_red =  self.filterImage(image, [0,0,170], [95,130,255])
+        redBlobs =  self.findCircle(bw_img_red)
 
         ########## OPTIONAL ###############
         # Add all filtered images for total black/white image
@@ -402,15 +402,36 @@ class vision_v1():
         print("Amount of green blobs:", len(greenBlobs), greenBlobs)
         print("Amount of red blobs:", len(redBlobs), redBlobs)
 
-        # Check for every blob if it is in dimensions
-        # image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
-        # for blob in blueBlobs:
-        #     if image_dim > blob[:2]:
-        #         print("Kleiner")
+        # Get dimensions of picture and reverse them for ease of use (x, y)
+        image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
 
-        # NOG DOEN
-        # for all combinations of red, green, blue blobs
-            # check if radius is not too far off
+        # Find all blobs in dimensions of picture
+        in_bounds_blobs = []
+        for blobList in [blueBlobs, greenBlobs, redBlobs]:
+            legal_blobs = []
+            for blob in blobList:
+                blob_dim = blob[:2]
+                # Blob out of bounds
+                if blob_dim[0] > image_dim[0] or blob_dim[1] > image_dim[1]:
+                    continue
+                # Legal blob
+                else:
+                    legal_blobs.append(blob)
+            # No legal blobs found of certain colour
+            if legal_blobs == []:
+                return 0, [], None, None
+            in_bounds_blobs.append(legal_blobs)
+
+        # Radius check for all blobs
+        mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
+        if mean_blobs != 1:
+        
+            
+            total = np.sum(in_bounds_blobs, axis=0)
+            total = np.sum(total, axis=0)
+            total = np.sum(total, axis=0)
+            print("Sum of blobs", total)
+
 
         # Create bloblist
         blobsList = np.asarray([blueBlobs[0], greenBlobs[0], redBlobs[0]])
@@ -418,7 +439,7 @@ class vision_v1():
 
         ########## OPTIONAL ###############
         # Make reconstruction of black/white blobs
-        found_image =  self.vision.drawCircles(blobsList)
+        found_image =  self.drawCircles(blobsList)
             
         return blobsFound, blobsList[:, :2], filter_image, found_image
 

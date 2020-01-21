@@ -122,22 +122,41 @@ def getBlobsData(image):
         print("No green circles found")
         return 0, None, None, None
 
-    print("Amount of blue blobs:", len(blueBlobs), blueBlobs)
-    print("Amount of green blobs:", len(greenBlobs), greenBlobs)
-    print("Amount of red blobs:", len(redBlobs), redBlobs)
+    # print("Amount of blue blobs:", len(blueBlobs), blueBlobs)
+    # print("Amount of green blobs:", len(greenBlobs), greenBlobs)
+    # print("Amount of red blobs:", len(redBlobs), redBlobs)
 
+    # Get dimensions of picture and reverse them for ease of use (x, y)
+    image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
 
-    # image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
+    # Find all blobs in dimensions of picture
+    in_bounds_blobs = []
+    for blobList in [blueBlobs, greenBlobs, redBlobs]:
+        legal_blobs = []
+        for blob in blobList:
+            blob_dim = blob[:2]
+            # Blob out of bounds
+            if blob_dim[0] > image_dim[0] or blob_dim[1] > image_dim[1]:
+                continue
+            # Legal blob
+            else:
+                legal_blobs.append(blob)
+        # No legal blobs found of certain colour
+        if legal_blobs == []:
+            return 0, [], None, None
+        in_bounds_blobs.append(legal_blobs)
 
+    # Radius check for all blobs
+    mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
+    if mean_blobs != 1:
+    
+        
+        total = np.sum(in_bounds_blobs, axis=0)
+        total = np.sum(total, axis=0)
+        total = np.sum(total, axis=0)
+        print("Sum of blobs", total)
 
-    # for blob in blueBlobs:
-    #     print(blob[:2])
-    #     print(image_dim)
-    #     if image_dim > blob[:2]:
-    #         print("Kleiner")
-
-
-    blobsList = np.asarray([blueBlobs[0], greenBlobs[0], redBlobs[0]])
+    blobsList = np.asarray(in_bounds_blobs)
     blobsFound = len(blobsList)
 
     found_img = drawCircles(blobsList)
