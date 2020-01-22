@@ -1,6 +1,7 @@
 import cv2
 from naoqi import ALProxy
 import math
+import time
 
 class sonar_v1():    
     globals = None
@@ -37,4 +38,19 @@ class sonar_v1():
         # Get camPos
         # getPosition(name, space={0,1,2}, useSensorValues)
         return left,right
+
+    def avg_sonar(self):
+        self.sSubscribe()
+        left = right = 0
+        reading_nr = 5
+        for i in range(reading_nr):
+            time.sleep(0.1)
+            l,r = self.getSonarData(value=0)
+            print(l, r)
+            left += l
+            right += r
+        left /= reading_nr
+        right /= reading_nr
+        self.sUnsubscribe() 
+        return [left, right]
         
