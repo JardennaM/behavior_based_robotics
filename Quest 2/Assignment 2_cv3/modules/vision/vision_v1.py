@@ -46,7 +46,7 @@ class vision_v1():
         minD = 30  
         p1 = 255
         p2 = 27
-        minS = 10
+        minS = 8
         maxS = 70
         circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, dp, minD, None, p1, p2, minS, maxS)
 
@@ -54,37 +54,29 @@ class vision_v1():
             n_circles = len(circles)
             return np.reshape(circles,(circles.shape[1],circles.shape[2]))
         except TypeError:
-            return None
+            return np.asarray([])
 
     def in_range_bgr(self,img,bgr_low,bgr_high):
         return cv2.inRange(img, np.array(bgr_low), np.array(bgr_high))
 
+    def filter_find_circle(self, image, bgr_low, bgr_high):
+        """Filters image to black and white inbetween color range. 
+        Returns circles found in black and white image"""
+        bw_image = self.filterImage(image, bgr_low, bgr_high)
+        blobs = self.findCircle(bw_image)
+        return blobs, bw_image
 
-    # Proces image to detect color blobs
-    def getBlobsData(self, image):
-        '''
-        Input: Image
-        Return: numberOfBlobsFound , [List [center-pixels] of blobs]
-        '''
 
-        # Filter blue circle
-        bw_img_blue = self.filterImage(image, [70,0,0],[255,100,100])
-        blueBlobs = self.findCircle(bw_img_blue)
-
-        # Check wether blue circle was found
-        try:
-            blueLen = len(blueBlobs)
-        except:
-            print("No blue circles found")
-            return 0, [], bw_img_blue, bw_img_blue
-
-        # Cut out section with blobs from picture
+    def cutout_paper(self, image, blueBlobs):
+        """Masks paper out of the whole image by filling up the shape where the blueBlob was found"""
+        # Prepare image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         canny = cv2.Canny(gray, 130, 255, 10)
-        mask = np.full(gray.shape, 255 ,dtype=np.uint8)
-        lines = cv2.HoughLines(canny,1,np.pi/180,75)
+        mask = np.full(gray.shape, 255 ,dtype=np.uint8)     # Create mask
+        
         
         # Draw Hough Lines
+        lines = cv2.HoughLines(canny,1,np.pi/180,75)
         for line in lines:
             for rho,theta in line:
                 a = np.cos(theta)
@@ -109,40 +101,25 @@ class vision_v1():
         # Fill mask from blob
         cv2.floodFill(mask, mask2, tuple(blueBlobs[0][:2]), 0)
         image[mask.astype(np.bool), :] = 0
-        print(blueBlobs)
-        cv2.imshow("string", image)
-        
-        # Filter for green blobs
-        bw_img_green =  self.filterImage(image, [0,90,0],[100,255,100])
-        greenBlobs =  self.findCircle(bw_img_green)
+        return image
 
-        # Filter for red blobs
-        bw_img_red =  self.filterImage(image, [0,0,170], [95,130,255])
-        redBlobs =  self.findCircle(bw_img_red)
+    def slice_coords(self, blobsList):
+        """
+        Input: blobsList with [x , y , radius]
+        Returns: Array with x, y coordinates according to number of blobs found
+        """
+        xyblobsList = []
+        for blobList in blobsList:
+            if len(blobList) == 0:
+                xyblobsList.append([])
+            else:
+                xyblobsList.append(blobList[:, :2])
 
-        ########## OPTIONAL ###############
-        # Add all filtered images for total black/white image
-        filter_image = bw_img_blue + bw_img_green + bw_img_red
+        return np.asarray(xyblobsList)
 
-        # Check wether green and red circle was found
-        try:
-            greenLen = len(greenBlobs)
-            redLen = len(redBlobs)
-        except:
-            print("No green circles found")
-            return 0, [], filter_image, filter_image
-
-        # Temporary prints for amount of blobs
-        print("Amount of blue blobs:", len(blueBlobs), blueBlobs)
-        print("Amount of green blobs:", len(greenBlobs), greenBlobs)
-        print("Amount of red blobs:", len(redBlobs), redBlobs)
-
-        # Get dimensions of picture and reverse them for ease of use (x, y)
-        image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
-
-        # Find all blobs in dimensions of picture
+    def find_in_bound_blobs(self, blobsList, image_dim):
         in_bounds_blobs = []
-        for blobList in [blueBlobs, greenBlobs, redBlobs]:
+        for blobList in blobsList:
             legal_blobs = []
             for blob in blobList:
                 blob_dim = blob[:2]
@@ -152,66 +129,150 @@ class vision_v1():
                 # Legal blob
                 else:
                     legal_blobs.append(blob)
-            # No legal blobs found of certain colour
-            if legal_blobs == []:
-                return 0, [], None, None
+            # Append all legal blobs
             in_bounds_blobs.append(np.asarray(legal_blobs))
-        
-        
-        np.append(in_bounds_blobs[1], [40, 20, 49])
-        print(in_bounds_blobs)
-        # Radius check for all blobs
-        mean_blobs = np.mean([len(blobList) for blobList in in_bounds_blobs])
-        total_blobs = sum(mean_blobs)
+        return np.asarray(in_bounds_blobs)
 
-        if mean_blobs != 1 and total_blobs == 4:
-            print("AVERAGE IS NOT EQUAL TO ONE. LOOKING FOR PLAUSIBLE BLOB COMBINATIONS")
-            ps = list(product(*in_bounds_blobs))
-            plausible_blobLists = []
-            for p in ps:
-                blue, green, red = p
-                coords = [blue[:2], green[:2], red[:2]]
-                center = self.calcMidLandmark(coords)
-                
-                DistFromCenter = self.calcDistanceFromCenter(coords, center)
-                std_DistanceFromCenter = np.std(DistFromCenter)
+    def find_plausible_blobs(self, blobsList):
+        ps = list(product(*blobsList))
+        plausible_blobLists = []
+        for p in ps:
+            blue, green, red = p
+            coords = [blue[:2], green[:2], red[:2]]
+            center = self.calcMidLandmark(coords)
+            
+            DistFromCenter = self.calcDistanceFromCenter(coords, center)
+            std_DistanceFromCenter = np.std(DistFromCenter)
 
-                if std_DistanceFromCenter > max(DistFromCenter) * 0.2:
-                    continue
+            if std_DistanceFromCenter > max(DistFromCenter) * 0.2:
+                continue
 
-                else:
-                    plausible_blobLists.append(p)
-                
-
-            if len(plausible_blobLists) != 1:
-                print("No plausible blobs found")
-                return 0, [], None, None
             else:
-                blobsList = np.asarray([[plausible_blobLists[0][0]], [plausible_blobLists[0][1]], [plausible_blobLists[0][2]]])
-        elif total_blobs != 3:
-            return 0, [], None, None
-        else:
-            # Create bloblist
-            blobsList = np.asarray([in_bounds_blobs[0][0], in_bounds_blobs[1][0], in_bounds_blobs[2][0]])
+                plausible_blobLists.append(p)
+        return plausible_blobLists
 
-        blobsFound = len(blobsList)
-        print(blobsList)
+    # Proces image to detect color blobs
+    def getBlobsData(self, image):
+        '''
+        Input: Image
+        Return: numberOfBlobsFound , [List [center-pixels] of blobs]
+        '''
+
+        # Filter blue circle
+        blueBlobs, bw_image_blue = self.filter_find_circle(image, [70,0,0],[255,100,100])
+
+        # Check wether blue circle was found
+        blueLen = len(blueBlobs)
+
+        # Cut out section with blobs from picture
+        if blueLen == 1:
+            image = self.cutout_paper(image, blueBlobs)
+        
+        # Filter for green blobs
+        greenBlobs, bw_image_green = self.filter_find_circle(image, [0,70,0],[100,255,100])
+
+        # Filter for red blobs
+        redBlobs, bw_image_red = self.filter_find_circle(image, [0,0,170], [95,130,255])
 
         ########## OPTIONAL ###############
-        # Make reconstruction of black/white blobs
-        try: 
-            found_image =  self.drawCircles(blobsList)
+        # Add all filtered images for total black/white image
+        filter_image = bw_image_blue + bw_image_green + bw_image_red
+
+        # Check wether green and red circle was found
+        greenLen = len(greenBlobs)
+        redLen = len(redBlobs)
+
+        print("Blue blobs", blueBlobs)
+        print("green blobs", greenBlobs)
+        print("red blobs", redBlobs)
+
+        blobsList = [blueBlobs, greenBlobs, redBlobs]
+        print("Full bloblist", blobsList)
+        # print(blobsList)
+        if blueLen == 0 or greenLen == 0 or redLen == 0:
+            xyblobsList = self.slice_coords(blobsList)
+            drawn_circles = self.drawCircles(blobsList)
+            return blueLen + greenLen + redLen, xyblobsList, filter_image, drawn_circles
+
+        # Get dimensions of picture and reverse them for ease of use (x, y)
+        image_dim = np.asarray(list(image.shape[:2])[::-1], dtype=float)
+
+        # Find all blobs in dimensions of picture
+        blobsList = self.find_in_bound_blobs(blobsList, image_dim)
+        blobsList = np.asarray([np.asarray([np.asarray([121,  127,   22])]),
+
+        np.asarray([np.asarray([195,  175,   21]), np.asarray([1,2,3])]),
+
+        np.asarray([np.asarray([199,   83,   21])])])
+
+        print("=================================================================")
+        print(blobsList)
+
+        print("=============================================================")
+
+        # Recalculate number of found blobs
+        blueLen = len(blobsList[0])
+        greenLen = len(blobsList[1])
+        redLen = len(blobsList[2])
+
+        # Check if there is a blob of each colour
+        if blueLen == 0 or greenLen == 0 or redLen == 0:
+            xyblobsList = self.slice_coords(blobsList)
+            drawn_circles = self.drawCircles(blobsList)
+            return blueLen + greenLen + redLen, xyblobsList, filter_image, drawn_circles
+
+        # Radius check for all blobs
+        n_blobs_per_colour = [len(blobList) for blobList in blobsList]
+        mean_blobs = np.mean(n_blobs_per_colour)
+        n_blobs = sum(n_blobs_per_colour)
+
+        print(mean_blobs)
+        print(n_blobs)
+        print(blueLen, greenLen, redLen)
+
+        # Check combinations if there 4 or 5 blobs and each list contains at least 1 and at most 2 blobs
+        if mean_blobs != 1 and (3 > n_blobs > 7) and min(blueLen, greenLen, redLen) > 0 and max(blueLen, greenLen, redLen) < 3:
+            print("AVERAGE IS NOT EQUAL TO ONE. LOOKING FOR PLAUSIBLE BLOB COMBINATIONS")
+            plausible_blobLists = self.find_plausible_blobs(blobsList)
+                
+            if len(plausible_blobLists) == 1:
+                print("One plausible blob combination found")
+                blobsList = plausible_blobLists[0]
+                n_blobs = len(xyblobsList[0]) + len(xyblobsList[1]) + len(xyblobsList[2])
+                
+            else:
+                print("Too many or too little plausible blobs found")
+                return 0, np.asarray([[], [], []]), filter_image, filter_image
+
+        print(blobsList)
+        xyblobsList = self.slice_coords(blobsList)
+        drawn_circles = self.drawCircles(blobsList)
+        return n_blobs, xyblobsList, filter_image, drawn_circles
+
+    def get_correct_blobsList(self, blobsList):
+        lenList = [len(colour) for colour in blobsList]
+        if max(lenList) == min(lenList) == 1:
+            new_blobsList = []
+            for colour in blobsList:
+                new_blobsList.append(colour[0])
+            return 3, new_blobsList
+        return 0, []
             
-        except:
-            found_image = filter_image
-        return blobsFound, blobsList[:, :2], filter_image, found_image
 
     def drawCircles(self,circle_data):
         if circle_data != []:
             img = np.zeros((240,320,3), np.uint8)
-            for i in circle_data:
-                if i != []:
-                    cv2.circle(img,(i[0],i[1]),i[2],(255,255,255),-1)
+            for colour in circle_data:
+                # Only 1 blob found
+                if colour != []:
+                    if type(colour[0]) is float or type(colour[0]) is int:
+                        if colour != []:
+                            cv2.circle(img,(colour[0],colour[1]),colour[2],(255,255,255),-1)
+                    # Multiple blobs found
+                    else: 
+                        for circle in colour:
+                            if circle != []:
+                                cv2.circle(img,(circle[0],circle[1]),circle[2],(255,255,255),-1)
             return img
         else:
             print "NO CIRCLES"

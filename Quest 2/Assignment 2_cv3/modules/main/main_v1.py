@@ -19,18 +19,18 @@ class main_v1:
         self.tools.cSubscribe()
 
         
-        self.globals.posProxy.goToPosture("Stand", 1)
-        sonar = self.sonar.avg_sonar()
+        # self.globals.posProxy.goToPosture("Stand", 1)
+        # sonar = self.sonar.avg_sonar()
 
-        while sonar[0] > 0.3 and sonar[1] > 0.3:
-            print(sonar)
-            time.sleep(3)
-            self.globals.posProxy.goToPosture("StandInit", 1)
-            time.sleep(3)
-            self.globals.motProxy.moveTo(0.2, 0, 0)
-            time.sleep(3)
-            self.globals.posProxy.goToPosture("Stand", 1)
-            sonar = self.sonar.avg_sonar()
+        # while sonar[0] > 0.3 and sonar[1] > 0.3:
+        #     print(sonar)
+        #     time.sleep(3)
+        #     self.globals.posProxy.goToPosture("StandInit", 1)
+        #     time.sleep(3)
+        #     self.globals.motProxy.moveTo(0.2, 0, 0)
+        #     time.sleep(3)
+        #     self.globals.posProxy.goToPosture("Stand", 1)
+        #     sonar = self.sonar.avg_sonar()
 
 
 
@@ -47,32 +47,32 @@ class main_v1:
 
         
 
-        # img, pos = self.tools.getSnapshot()
+        img, pos = self.tools.getSnapshot()
 
-        # self.tools.SaveImage("test_image.jpg", img)
+        self.tools.SaveImage("test_image.jpg", img)
 
-        # amount_of_blobs, coords, imagearray, found_img = self.vision.getBlobsData(img)
+        amount_of_blobs, coords, black_white_im, drawn_circle_img = self.vision.getBlobsData(img)
+        amount_of_blobs, coords = self.vision.get_correct_blobsList(coords)
 
-        # print(coords)
+        print(amount_of_blobs, coords)
+        try:
+            self.tools.SaveImage("test_bw_image.jpg", black_white_im)
+        except:
+            print("black and white filter image not saved")
+        try:
+            self.tools.SaveImage("test_image_found_circles.jpg", drawn_circle_img)
+        except:
+            print("Drawn circle image not saved")
      
-        # if amount_of_blobs > 0:
-
-        #     try:
-        #         self.tools.SaveImage("test_bw_image.jpg", imagearray)
-        #         self.tools.SaveImage("test_image_found_circles.jpg", found_img)
-        #     except:
-        #         print("Opslaan niet gelukt")
-
-        #     Distance = self.vision.calcAvgBlobDistance(coords)
-        #     center = self.vision.calcMidLandmark(coords)
-        #     angle = self.vision.calcAngleLandmark(center)
-        #     signature = self.vision.findSignature(coords)
-        #     print(coords, Distance, center, angle, signature)
-          
-        #     self.globals.motProxy.rest()
-        
-        # else:
-        #     print("No blobs")
+        if amount_of_blobs == 3:
+            Distance = self.vision.calcAvgBlobDistance(coords)
+            center = self.vision.calcMidLandmark(coords)
+            angle = self.vision.calcAngleLandmark(center)
+            signature = self.vision.findSignature(coords)
+            print(Distance, center, angle, signature)
+        else:
+            print("No blobs")
+        self.globals.motProxy.rest()
         
 
 
