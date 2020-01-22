@@ -10,6 +10,7 @@ class main_v1:
         self.tools = modules.getModule("tools")
         self.vision = modules.getModule("vision")
         self.sonar = modules.getModule("sonar")
+        self.behaviour = modules.getModule("behaviour")
     
     
 
@@ -18,30 +19,21 @@ class main_v1:
         self.motion.init()
         self.tools.cSubscribe()
 
+        # self.globals.motProxy.getHeadPos()
         
-        self.globals.posProxy.goToPosture("Stand", 1)
-        sonar = self.sonar.avg_sonar()
-
-        while sonar[0] > 0.3 and sonar[1] > 0.3:
-            print(sonar)
-            time.sleep(3)
-            self.globals.posProxy.goToPosture("StandInit", 1)
-            time.sleep(3)
-            self.globals.motProxy.moveTo(0.2, 0, 0)
-            time.sleep(3)
-            self.globals.posProxy.goToPosture("Stand", 1)
-            sonar = self.sonar.avg_sonar()
-
-
-
-        
-
-        # self.globals.motProxy.rest()
+        self.behaviour.look_around("u")
 
         
         # self.globals.posProxy.goToPosture("StandInit", 1)
-        # self.globals.motProxy.moveTo(0.5, 0, 0)
 
+        # self.globals.motProxy.moveTo(0, 0, (-np.pi * 0.5))
+
+
+    
+ 
+        # self.globals.motProxy.rest()
+
+        
 
 
 
