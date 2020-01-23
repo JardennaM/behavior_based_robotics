@@ -12,49 +12,13 @@ class main_v1:
         self.sonar = modules.getModule("sonar")
         self.behaviour = modules.getModule("behaviour")
     
-    
-
-    def start(self):
-        self.globals.setProxies()
-        self.motion.init()
-        self.tools.cSubscribe()
-
-        # self.globals.motProxy.getHeadPos()
-        
-        self.behaviour.look_around("u")
-        # self.globals.posProxy.goToPosture("Stand", 1)
-        # sonar = self.sonar.avg_sonar()
-
-        # while sonar[0] > 0.3 and sonar[1] > 0.3:
-        #     print(sonar)
-        #     time.sleep(3)
-        #     self.globals.posProxy.goToPosture("StandInit", 1)
-        #     time.sleep(3)
-        #     self.globals.motProxy.moveTo(0.2, 0, 0)
-        #     time.sleep(3)
-        #     self.globals.posProxy.goToPosture("Stand", 1)
-        #     sonar = self.sonar.avg_sonar()
-
-        
-        # self.globals.posProxy.goToPosture("StandInit", 1)
-
-        # self.globals.motProxy.moveTo(0, 0, (-np.pi * 0.5))
-
-
-    
- 
-        # self.globals.motProxy.rest()
-
-        
-
-
-
-        
-
+    def see_picture(self):
+        # Take snapshot
         img, pos = self.tools.getSnapshot()
 
         self.tools.SaveImage("test_image.jpg", img)
 
+        # Try to find circles   
         amount_of_blobs, coords, black_white_im, drawn_circle_img = self.vision.getBlobsData(img)
         amount_of_blobs, coords = self.vision.get_correct_blobsList(coords)
 
@@ -67,16 +31,88 @@ class main_v1:
             self.tools.SaveImage("test_image_found_circles.jpg", drawn_circle_img)
         except:
             print("Drawn circle image not saved")
-     
+
+        return amount_of_blobs, coords
+
+
+    def seek_blobs(self):
+        # Straigt "left", "right", "down", "up"
+        head_positions = ["straight", "down", "up" "left", "right"]
+
+        self.globals.posProxy.goToPosture("Stand", 1)
+        for position in head_positions:
+            # Straigt
+            self.behaviour.look_around(position)
+            time.sleep(3)
+            self.tools.cSubscribe()
+            amount_of_blobs, coords = self.see_picture()
+            self.tools.cUnsubscribe()
+            time.sleep(3)
+            if amount_of_blobs == 3:
+                return amount_of_blobs, coords
+        return amount_of_blobs, coords
+            
+        
+
+
+
+    def start(self):
+        self.globals.setProxies()
+        self.motion.init()
+        
+        # self.globals.posProxy.goToPosture("StandInit", 1)
+
+        
+        # # Walk until wall
+        # self.behaviour.walk_stop()
+
+        # print("Finish walk_stop")
+
+        # # Stand perpendicular to wall
+        # self.behaviour.stand_perp()
+
+        # print("Finish stand_perp")
+
+        # Try to find blobs
+        self.tools.cSubscribe()
+        amount_of_blobs, coords = self.see_picture()
+        
+
         if amount_of_blobs == 3:
-            Distance = self.vision.calcAvgBlobDistance(coords)
-            center = self.vision.calcMidLandmark(coords)
-            angle = self.vision.calcAngleLandmark(center)
-            signature = self.vision.findSignature(coords)
-            print(Distance, center, angle, signature)
+            distance, center, angle, signature = self.vision.getInformation(coords)
+            self.behaviour.follow_signature(signature)
+            
         else:
             print("No blobs")
+
+
         self.globals.motProxy.rest()
+        
+
+
+
+
+        # self.globals.motProxy.getHeadPos()
+        
+        # self.globals.posProxy.goToPosture("Stand", 1)
+        # sonar = self.sonar.avg_sonar()
+
+
+
+        # self.globals.posProxy.goToPosture("StandInit", 1)
+
+        # self.globals.motProxy.moveTo(0, 0, (-np.pi * 0.5))
+
+
+    
+ 
+        # self.globals.motProxy.rest()
+
+        
+
+        
+     
+        
         
 
 

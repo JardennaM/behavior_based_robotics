@@ -77,6 +77,10 @@ class vision_v1():
         
         # Draw Hough Lines
         lines = cv2.HoughLines(canny,1,np.pi/180,75)
+        try:
+            len(lines)
+        except:
+            return image
         for line in lines:
             for rho,theta in line:
                 a = np.cos(theta)
@@ -159,7 +163,9 @@ class vision_v1():
         '''
 
         # Filter blue circle
-        blueBlobs, bw_image_blue = self.filter_find_circle(image, [70,0,0],[255,100,100])
+        # blueBlobs, bw_image_blue = self.filter_find_circle(image, [70,0,0],[255,100,100])
+        blueBlobs, bw_image_blue = self.filter_find_circle(image, [80,0,0],[255,100,100])
+        
 
         # Check wether blue circle was found
         blueLen = len(blueBlobs)
@@ -169,10 +175,11 @@ class vision_v1():
             image = self.cutout_paper(image, blueBlobs)
         
         # Filter for green blobs
-        greenBlobs, bw_image_green = self.filter_find_circle(image, [0,70,0],[100,255,100])
-
+        # greenBlobs, bw_image_green = self.filter_find_circle(image, [0,70,0],[100,255,100])
+        greenBlobs, bw_image_green = self.filter_find_circle(image, [0,80,0],[120,255,120])
         # Filter for red blobs
-        redBlobs, bw_image_red = self.filter_find_circle(image, [0,0,170], [95,130,255])
+        # redBlobs, bw_image_red = self.filter_find_circle(image, [0,0,170], [95,130,255])
+        redBlobs, bw_image_red = self.filter_find_circle(image, [0,0,170], [100,130,255])
 
         ########## OPTIONAL ###############
         # Add all filtered images for total black/white image
@@ -199,16 +206,16 @@ class vision_v1():
 
         # Find all blobs in dimensions of picture
         blobsList = self.find_in_bound_blobs(blobsList, image_dim)
-        blobsList = np.asarray([np.asarray([np.asarray([121,  127,   22])]),
+        # blobsList = np.asarray([np.asarray([np.asarray([121,  127,   22])]),
 
-        np.asarray([np.asarray([195,  175,   21]), np.asarray([1,2,3])]),
+        # np.asarray([np.asarray([195,  175,   21]), np.asarray([1,2,3])]),
 
-        np.asarray([np.asarray([199,   83,   21])])])
+        # np.asarray([np.asarray([199,   83,   21])])])
 
-        print("=================================================================")
-        print(blobsList)
+        # print("=================================================================")
+        # print(blobsList)
 
-        print("=============================================================")
+        # print("=============================================================")
 
         # Recalculate number of found blobs
         blueLen = len(blobsList[0])
@@ -230,8 +237,11 @@ class vision_v1():
         print(n_blobs)
         print(blueLen, greenLen, redLen)
 
+        print(min(blueLen, greenLen, redLen))
+        print(max(blueLen, greenLen, redLen))
+        print(3 > n_blobs > 7)
         # Check combinations if there 4 or 5 blobs and each list contains at least 1 and at most 2 blobs
-        if mean_blobs != 1 and (3 > n_blobs > 7) and min(blueLen, greenLen, redLen) > 0 and max(blueLen, greenLen, redLen) < 3:
+        if mean_blobs != 1.0 and n_blobs > 3 and n_blobs < 7 and min(blueLen, greenLen, redLen) > 0 and max(blueLen, greenLen, redLen) < 4:
             print("AVERAGE IS NOT EQUAL TO ONE. LOOKING FOR PLAUSIBLE BLOB COMBINATIONS")
             plausible_blobLists = self.find_plausible_blobs(blobsList)
                 
@@ -364,276 +374,10 @@ class vision_v1():
         # Unknown orientation of blobs
         return -1
         
-
-
-
-        # import cv2
-# # import cv2.cv as cv
-# import numpy, math
-# import numpy as np
-# from itertools import combinations
-
-# def cv2_wait():
-#     key = cv2.waitKey(-1) & 0xFF
-#     if key==27:    # Esc key to stop
-#         cv2.destroyAllWindows()
-#         exit()
-#     return key
-
-# class vision_v1():
-#     globals = None
-
-#     def setDependencies(self, modules):
-#         self.globals = modules.getModule("globals")
-
-#     #Filter HSV Image with given values
-#     def filterImage(self, img, min_bgr, max_bgr):
-#         '''
-#         Input: HSV Image, 2 List of min and max HSV values
-#         Output: Black White Matrix/Image
-#         '''
-#         ## implement your filtering here.
-#         img = img
-#         min_scal = np.array(min_bgr)
-#         max_scal = np.array(max_bgr)
-
-#         resultimg = cv2.inRange(img, min_scal, max_scal)
-
-#         return cv2.blur(resultimg, (3,3))
-#         # return resultimg
-        
-       
-#     #Find Circle in a filtered image
-#     def findCircle(self,imgMat):
-#         '''
-#         Input: Black Whit Image
-#         Return: List of center position of found Circle
-#         '''
-
-#         img = imgMat
-
-#         # Hough algorithm parameters
-#         dp = 2
-#         minD = 30  
-#         p1 = 255
-#         p2 = 27
-#         minS = 15
-#         maxS = 70
-#         circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, dp, minD, None, p1, p2, minS, maxS)
-
-#         # # Hough algorithm parameters
-#         # dp = 2
-#         # minD = 30  
-#         # p1 = 255
-#         # p2 = 27
-#         # minS = 20 #15
-#         # maxS = 100 #80
-#         # circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, dp, minD, None, p1, p2, minS, maxS)
-
-#         try:
-#             n_circles = len(circles)
-#             return np.reshape(circles,(circles.shape[1],circles.shape[2]))
-#         except TypeError:
-#             return None
-
-#         # if n_circles == 0: # circles == None
-#         #     return None
-#         # else:
-#         #     return np.reshape(circles,(circles.shape[1],circles.shape[2]))
-
-#     def in_range_bgr(self,img,bgr_low,bgr_high):
-#         return cv2.inRange(img, np.array(bgr_low), np.array(bgr_high))
-
-
-#     # Proces image to detect color blobs
-#     def getBlobsData(self, image):
-#         '''
-#         Input: Image
-#         Return: numberOfBlobsFound , [List [center-pixels] of blobs]
-#         '''
-
-#         # Samen vs Apart filters testen
-#         bw_img_blue = self.filterImage(image, [90,0,0],[255,100,100])
-#         blueBlobs = self.findCircle(bw_img_blue)
-
-#         try:
-#             blueLen = len(blueBlobs)
-#         except:
-#             print("No blue")
-#             return 0, None, None, None
-
-#         # only white paper
-#         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#         canny = cv2.Canny(gray, 130, 255, 10)
-
-#         # cv2.imshow("result", canny)
-#         # cv2.waitKey(0)
-
-#         mask = np.ones(gray.shape)
-#         lines = cv2.HoughLines(canny,1,np.pi/180,75)
-#         print(lines)
-#         for line in lines:
-#             for rho,theta in line:
-#                 a = np.cos(theta)
-#                 b = np.sin(theta)
-#                 x0 = a*rho
-#                 y0 = b*rho
-#                 x1 = int(x0 + 1000*(-b))
-#                 y1 = int(y0 + 1000*(a))
-#                 x2 = int(x0 - 1000*(-b))
-#                 y2 = int(y0 - 1000*(a))
-
-#                 cv2.line(image,(x1,y1),(x2,y2),(0,0,0),2)
-
-#         # cv2.imshow("result", mask)
-#         # cv2.waitKey(0)
-
-
-
-#         # cnts = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#         # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-
-#         # for c in cnts:
-#         #     cv2.drawContours(image, [c], 0, (0, 255, 0), 3)
-#         #     print(len(c))
-
-#         # mask = np.ones(gray.shape)
-#         # mask = cv2.drawContours(mask, cnts[3:6], -1, 0, cv2.FILLED)
-        
-#         # h, w = mask.shape[:2]
-#         # mask2 = np.zeros((h+2, w+2), np.uint8)
-
-#         output = image.copy()
-#         output[mask.astype(np.bool), :] = 0
-
-#         # cv2.floodFill(mask, mask2, (0,0), 255)
-
-#         cv2.imshow("result", output)
-#         cv2.waitKey(0)
-#         # cv2.imwrite("images/input.png", input)
-#         # cv2.imwrite("images/mask.png", np.uint8(255 * mask))
-#         # cv2.imwrite("images/output.png", output)
-        
-        
-
-#         bw_img_green = self.filterImage(image, [0,90,0],[100,255,100])
-#         greenBlobs = self.findCircle(bw_img_green)
-
-#         bw_img_red = self.filterImage(image, [0,0,170], [95,130,255])
-#         redBlobs = self.findCircle(bw_img_red)
-
-#         imagearray = bw_img_blue + bw_img_green + bw_img_red
-
-#         print("Amount of blue blobs:", len(blueBlobs), blueBlobs)
-#         print("Amount of green blobs:", len(greenBlobs), greenBlobs)
-#         print("Amount of red blobs:", len(redBlobs), redBlobs)
-
-#         if (len(blueBlobs) != 1 or len(greenBlobs) != 1 or len(redBlobs) != 1):
-#             blobsList = np.asarray(blueBlobs + greenBlobs + redBlobs)
-#             found_img = self.drawCircles(blobsList)
-#             print(blobsList)
-#             return len(blobsList), blobsList, imagearray, found_img
-
-#         blobsList = np.asarray([blueBlobs[0], greenBlobs[0], redBlobs[0]])
-#         blobsFound = len(blobsList)
-#         print(blobsList)
-
-
-#         found_img = self.drawCircles(blobsList)
-
-#         # bw_img_blue = self.filterImage(image, [45,0,0],[255,100,100])
-#         # bw_img_green = self.filterImage(image, [0,45,0],[100,255,100])
-#         # bw_img_red = self.filterImage(image, [0,0,130], [95,130,255])
-#         # imagearray = bw_img_blue + bw_img_green + bw_img_red
-#         # blobsList = self.findCircle(imagearray)
-#         # if blobsList != []:
-#         #     blobsFound = len(blobsList)
-#         # else:
-#         #    0
-            
-#         return blobsFound, blobsList[:, :2], imagearray, found_img
-
-#     def drawCircles(self,circle_data):
-#         if circle_data != []:
-#             # img = np.zeros((320,400,3), np.uint8)
-#             img = np.zeros((240,320,3), np.uint8)
-#             for i in circle_data:
-#                 if i != []:
-#                     cv2.circle(img,(i[0],i[1]),i[2],(255,255,255),-1)
-#             # return cv.fromarray(img)
-#             return img
-#         else:
-#             print "NO CIRCLES"
-
-
-#     # Get Average Distance between multiple blobs
-#     def calcAvgBlobDistance(self, blobList):
-#         '''
-#         Input: [Pink, Blue, Orange]
-#         Output: Avarege Distance in pixels
-#         '''
-    
-#         if len(blobList) == 0 or len(blobList) == 1:
-#             return None
-#         Distance = 0
-#         total_combinations = 0
-        
-#         combs = combinations(blobList, 2)
-#         for comb in combs:
-#             Distance += numpy.linalg.norm(comb[0] - comb[1])  
-#             total_combinations += 1         
-
-
-#         Distance /= total_combinations
-#         return Distance
-
-#     # Find centre of a Landmark
-#     def calcMidLandmark(self, blobList):
-#         '''
-#         Input: [Pink, Blue, Orange]
-#         Output: center pixel as (x,y)
-#         '''
-#         if blobList == []:
-#             return []
-#         return np.sum(blobList, 0) / len(blobList)
-
-#     # Find the angle between a found Landmark and the Nao
-#     def calcAngleLandmark(self, center):
-#         '''
-#         Input: center pixel, (x,y)
-#         Output: Angle in radians
-#         '''
-#         if center == []:
-#             return None
-
-#         center -= np.asarray([120, 160])
-#         center *= 0.0038
-
-#         return abs(center[0])
-
-#     # Find the Signature
-#     def findSignature(self,blobList):
-#         '''
-#         Input: [Pink, Blue, Orange]
-#         Output: Signature
-#         '''
-
-#         blue_green = blobList[0] - blobList[1]
-#         blue_red = blobList[0] - blobList[2]
-#         print(blue_green)
-#         print(blue_red)
-
-#         if blue_green[1] > 0 and blue_red[1] > 0 and blue_green[0] < 0 and blue_red[0] > 0:
-#             return "Finish"
-
-#         if blue_green[0] > 0 and blue_red[0] > 0 and blue_green[1] > 0 and blue_red[1] < 0:
-#             return "Right"
-        
-#         if blue_green[0] < 0 and blue_red[0] < 0 and blue_green[1] < 0 and blue_red[1] > 0:
-#             return "Left"
-
-#         return -1
-
-
-
+    def getInformation(self, coords):
+        distance = self.calcAvgBlobDistance(coords)
+        center = self.calcMidLandmark(coords)
+        angle = self.calcAngleLandmark(center)
+        signature = self.findSignature(coords)
+        return distance, center, angle, signature
 
