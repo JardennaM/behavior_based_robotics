@@ -1,3 +1,10 @@
+# self.globals.posProxy.goToPosture("Stand", 1)
+# self.globals.posProxy.goToPosture("StandInit", 1)
+# sonar = self.sonar.avg_sonar()
+# self.globals.motProxy.moveTo(0, 0, (-np.pi * 0.5))
+# self.globals.motProxy.rest()
+
+
 import cv2
 import numpy as np
 from naoqi import ALProxy
@@ -60,23 +67,19 @@ class main_v1:
         self.globals.setProxies()
         self.motion.init()
         
-        # self.globals.posProxy.goToPosture("StandInit", 1)
+        # Walk until wall
+        self.behaviour.walk_stop()
 
-        
-        # # Walk until wall
-        # self.behaviour.walk_stop()
+        print("Finish walk_stop")
 
-        # print("Finish walk_stop")
+        # Stand perpendicular to wall
+        self.behaviour.stand_perp()
 
-        # # Stand perpendicular to wall
-        # self.behaviour.stand_perp()
-
-        # print("Finish stand_perp")
+        print("Finish stand_perp")
 
         # Try to find blobs
         self.tools.cSubscribe()
         amount_of_blobs, coords = self.see_picture()
-        
 
         if amount_of_blobs == 3:
             distance, center, angle, signature = self.vision.getInformation(coords)
@@ -85,28 +88,13 @@ class main_v1:
         else:
             print("No blobs")
 
-
         self.globals.motProxy.rest()
         
 
 
 
 
-        # self.globals.motProxy.getHeadPos()
         
-        # self.globals.posProxy.goToPosture("Stand", 1)
-        # sonar = self.sonar.avg_sonar()
-
-
-
-        # self.globals.posProxy.goToPosture("StandInit", 1)
-
-        # self.globals.motProxy.moveTo(0, 0, (-np.pi * 0.5))
-
-
-    
- 
-        # self.globals.motProxy.rest()
 
         
 
