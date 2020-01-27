@@ -71,7 +71,8 @@ class vision_v1():
         """Masks paper out of the whole image by filling up the shape where the blueBlob was found"""
         # Prepare image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        canny = cv2.Canny(gray, 130, 255, 10)
+        ret, thresh = cv2.threshold(gray, 160, 255, 0)
+        # canny = cv2.Canny(gray, 130, 255, 10)
         mask = np.full(gray.shape, 255 ,dtype=np.uint8)     # Create mask
         
         
@@ -103,6 +104,7 @@ class vision_v1():
         
         # contours = contours[0] if len(contours) == 2 else contours[1]
         
+        # OOK NAAR CHILD KIJKEN
         for c, h in zip(contours, hierarchy[0]):
             
             if h[3] == -1:
@@ -115,6 +117,8 @@ class vision_v1():
         # Fill mask from blob
         cv2.floodFill(mask, mask2, tuple(blueBlobs[0][:2]), 0)
         image[mask.astype(np.bool), :] = 0
+        cv2.imshow("img", image)
+        cv2.waitKey(0)
         return image
 
     def slice_coords(self, blobsList):
