@@ -75,28 +75,38 @@ class vision_v1():
         mask = np.full(gray.shape, 255 ,dtype=np.uint8)     # Create mask
         
         
-        # Draw Hough Lines
-        lines = cv2.HoughLines(canny,1,np.pi/180,75)
-        try:
-            len(lines)
-        except:
-            return image
-        for line in lines:
-            for rho,theta in line:
-                a = np.cos(theta)
-                b = np.sin(theta)
-                x0 = a*rho
-                y0 = b*rho
-                x1 = int(x0 + 1000*(-b))
-                y1 = int(y0 + 1000*(a))
-                x2 = int(x0 - 1000*(-b))
-                y2 = int(y0 - 1000*(a))
+        # # Draw Hough Lines
+        # lines = cv2.HoughLines(canny,1,np.pi/180,75)
+        # try:
+        #     len(lines)
+        # except:
+        #     return image
+        # for line in lines:
+        #     for rho,theta in line:
+        #         a = np.cos(theta)
+        #         b = np.sin(theta)
+        #         x0 = a*rho
+        #         y0 = b*rho
+        #         x1 = int(x0 + 1000*(-b))
+        #         y1 = int(y0 + 1000*(a))
+        #         x2 = int(x0 - 1000*(-b))
+        #         y2 = int(y0 - 1000*(a))
 
-                cv2.line(mask,(x1,y1),(x2,y2),0,2)
+        #         cv2.line(mask,(x1,y1),(x2,y2),0,2)
         
+        # # Find contours of Hough lines
+        # contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # contours = contours[0] if len(contours) == 2 else contours[1]
+
         # Find contours of Hough lines
-        contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = contours[0] if len(contours) == 2 else contours[1]
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # contours = contours[0] if len(contours) == 2 else contours[1]
+        
+        for c, h in zip(contours, hierarchy[0]):
+            
+            if h[3] == -1:
+                cv2.drawContours(mask, [c], -1, (0,255,0), 1)
         
         # Create mask for floodfill
         h, w = mask.shape[:2]
