@@ -71,8 +71,7 @@ class vision_v1():
         """Masks paper out of the whole image by filling up the shape where the blueBlob was found"""
         # Prepare image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        ret, thresh = cv2.threshold(gray, 160, 255, 0)
-        # canny = cv2.Canny(gray, 130, 255, 10)
+        canny = cv2.Canny(gray, 130, 255, 10)
         mask = np.full(gray.shape, 255 ,dtype=np.uint8)     # Create mask
         
         
@@ -103,22 +102,22 @@ class vision_v1():
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
         # contours = contours[0] if len(contours) == 2 else contours[1]
-        
-        # OOK NAAR CHILD KIJKEN
+        biggest_contour = 0
+        mid_paper = blueBlobs[0][:2]
         for c, h in zip(contours, hierarchy[0]):
-            
-            if h[3] == -1:
+            if h[3] == -1 and h[2] > 0:
                 cv2.drawContours(mask, [c], -1, (0,255,0), 1)
+                if len(c) > biggest_contour:
+                    mid_paper = np.mean(c, axis=0, dtype=int)
+                    biggest_contour = len(c)
         
         # Create mask for floodfill
         h, w = mask.shape[:2]
         mask2 = np.zeros((h+2, w+2), np.uint8)
 
         # Fill mask from blob
-        cv2.floodFill(mask, mask2, tuple(blueBlobs[0][:2]), 0)
+        cv2.floodFill(mask, mask2, tuple(mid_paper[0]), 0)
         image[mask.astype(np.bool), :] = 0
-        cv2.imshow("img", image)
-        cv2.waitKey(0)
         return image
 
     def slice_coords(self, blobsList):
