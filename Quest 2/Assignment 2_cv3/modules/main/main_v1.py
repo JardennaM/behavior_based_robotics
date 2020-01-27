@@ -58,7 +58,13 @@ class main_v1:
             if amount_of_blobs == 3:
                 return amount_of_blobs, coords
         return amount_of_blobs, coords
+
+
+
+    
             
+        
+     
         
 
 
@@ -89,8 +95,11 @@ class main_v1:
             print("No blobs")
 
         self.globals.motProxy.rest()
-        
 
+
+
+
+       
 
 
 

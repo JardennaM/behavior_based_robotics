@@ -197,3 +197,131 @@ class behaviour_v1():
             return True
         else:
             return False
+
+
+
+# *************************************************************
+
+
+    def not_finished(self, clue):
+        pass
+
+    def face_direction(self, direction):
+        pass
+
+    def search_more_blobs(self, blueBlob, tries=3):
+        for i in range(tries):
+            self.adjust_position(blueBlob)
+            n_blobs, blobsList = self.see_picture
+            # Break if 3 blobs
+            # Get new blue blob
+        return n_blobs, blobsList
+
+    def adjust_position(self, blueBlob):
+        '''
+        Input: xy-coordinates of blue blob
+        Function: adjusts position according to sonar and blue blob
+        '''
+        # Sonar meting
+        # A.d.h.v. sonar en xy coords adjustment berekenen
+            # beide sonar metingen groter dan 0.55, stap naar achter
+            # perpendicular staan
+            # waar was de blauwe blob, navigeer naar links of rechts
+        # Move naar desired position
+
+    
+    def search_3_blobs(self):
+        # 4x 90 graden draaien
+        directions = ["front", "left", "back", "right"]
+        for direction in directions:
+            # Face direction
+            self.face_direction(direction)
+
+            # NOG DOEN: Check of de juiste 3 blobs gereturned worden
+            n_blobs, blobsList = self.see_picture()
+            if n_blobs == 3:
+                return n_blobs, blobsList
+            elif blueBlob_found:
+                self.search_more_blobs(blueBlob, 3)
+                if n_blobs == 3:
+                    return n_blobs, blobsList
+        self.face_direction("front")
+        return None, None
+
+    def look_for_clues(self):
+        n_blobs, blobsList = self.search_3_blobs()
+        # If no blobs are found go to wander around
+        if n_blobs == None or blobsList == None:
+            return None, None, None, None, None, None
+        distance, center, angle, signature = self.vision.getInformation(blobsList)
+        return distance, center, angle, signature, blobsList
+
+
+    def follow_clue(self, clue):
+        # calculate angle to move
+        # move angle
+        # self.walk_stop()
+
+    def walk_stop(self):
+        self.globals.posProxy.goToPosture("StandInit", 1)
+        sonar = self.sonar.avg_sonar()
+
+        total_distance = 0
+
+        while self.no_wall(sonar, 0.55):
+            if total_distance > 2.5:
+                return False
+            self.drift_control(sonar)
+            # Free walk space
+            sonar = self.sonar.avg_sonar()
+            distance = self.calc_walk_distance(sonar)
+            total_distance += distance
+            self.globals.motProxy.moveTo(distance, 0, 0)
+            sonar = self.sonar.avg_sonar()
+        return True
+        
+    def calc_walk_distance(self, sonar):
+        distance = min(sonar) * 0.5
+        if distance < 0.2:
+            distance = 0.2
+        return distance
+
+    def no_wall(self, sonar, threshold):
+        if sonar[0] > threshold and sonar[1] > threshold:
+            return True
+        return False
+
+    def drift_control(self, sonar):
+        # Bereken difference
+        # Cases:
+            # Beide sensoren ver genoeg van muur, difference klein
+                # Niks doen
+            # 1 sensor dichtbij muur, difference groot
+                # Corrigeer naar midden
+                # Probeer perpendicular te staan als dat lukt
+        
+        pass
+
+    def stand_perp(self):
+        #kopieren van boven
+        pass
+
+    def turn_until_straigt(self):
+        # kopieren van boven
+        pass
+
+    def wander_around(self):
+        # walk until stop
+        # draai naar een vrije kant
+        # loop 1 meter
+        pass
+
+    def solve_maze(self):
+        clue = None
+        while self.not_finished(clue):
+            clue = self.look_for_clues()
+            if clue:
+                self.follow_clue()
+            else:
+                self.wander_around()
+        self.globals.motProxy.rest()
