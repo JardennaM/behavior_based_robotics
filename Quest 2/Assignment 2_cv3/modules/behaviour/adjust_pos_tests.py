@@ -20,8 +20,8 @@ def adjust_position(blueBlob):
 
     h_a = b * math.sin(C_angle)
 
-    B = np.asarray([-0.5 * a, .55])
-    C = np.asarray([0.5 * a, .55])
+    B = np.asarray([-0.28, .48])
+    C = np.asarray([0.28, .48])
 
     print(B)
     print(C)

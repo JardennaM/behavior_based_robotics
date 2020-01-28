@@ -73,26 +73,28 @@ class main_v1:
         self.globals.setProxies()
         self.motion.init()
         
-        # Walk until wall
-        self.behaviour.walk_stop()
+        self.behaviour.solve_maze()
 
-        print("Finish walk_stop")
+        # # Walk until wall
+        # self.behaviour.walk_stop()
 
-        # Stand perpendicular to wall
-        self.behaviour.stand_perp()
+        # print("Finish walk_stop")
 
-        print("Finish stand_perp")
+        # # Stand perpendicular to wall
+        # self.behaviour.stand_perp()
 
-        # Try to find blobs
-        self.tools.cSubscribe()
-        amount_of_blobs, coords = self.see_picture()
+        # print("Finish stand_perp")
 
-        if amount_of_blobs == 3:
-            distance, center, angle, signature = self.vision.getInformation(coords)
-            self.behaviour.follow_signature(signature)
+        # # Try to find blobs
+        # self.tools.cSubscribe()
+        # amount_of_blobs, coords = self.see_picture()
+
+        # if amount_of_blobs == 3:
+        #     distance, center, angle, signature = self.vision.getInformation(coords)
+        #     self.behaviour.follow_signature(signature)
             
-        else:
-            print("No blobs")
+        # else:
+        #     print("No blobs")
 
         self.globals.motProxy.rest()
 
