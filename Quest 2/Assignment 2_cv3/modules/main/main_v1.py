@@ -19,55 +19,45 @@ class main_v1:
         self.sonar = modules.getModule("sonar")
         self.behaviour = modules.getModule("behaviour")
     
-    def see_picture(self):
-        # Take snapshot
-        img, pos = self.tools.getSnapshot()
+    # def see_picture(self):
+    #     # Take snapshot
+    #     img, pos = self.tools.getSnapshot()
 
-        self.tools.SaveImage("test_image.jpg", img)
+    #     self.tools.SaveImage("test_image.jpg", img)
 
-        # Try to find circles   
-        amount_of_blobs, coords, black_white_im, drawn_circle_img = self.vision.getBlobsData(img)
-        amount_of_blobs, coords = self.vision.get_correct_blobsList(coords)
+    #     # Try to find circles   
+    #     amount_of_blobs, coords, black_white_im, drawn_circle_img = self.vision.getBlobsData(img)
+    #     amount_of_blobs, coords = self.vision.get_correct_blobsList(coords)
 
-        print(amount_of_blobs, coords)
-        try:
-            self.tools.SaveImage("test_bw_image.jpg", black_white_im)
-        except:
-            print("black and white filter image not saved")
-        try:
-            self.tools.SaveImage("test_image_found_circles.jpg", drawn_circle_img)
-        except:
-            print("Drawn circle image not saved")
+    #     print(amount_of_blobs, coords)
+    #     try:
+    #         self.tools.SaveImage("test_bw_image.jpg", black_white_im)
+    #     except:
+    #         print("black and white filter image not saved")
+    #     try:
+    #         self.tools.SaveImage("test_image_found_circles.jpg", drawn_circle_img)
+    #     except:
+    #         print("Drawn circle image not saved")
 
-        return amount_of_blobs, coords
-
-
-    def seek_blobs(self):
-        # Straigt "left", "right", "down", "up"
-        head_positions = ["straight", "down", "up" "left", "right"]
-
-        self.globals.posProxy.goToPosture("Stand", 1)
-        for position in head_positions:
-            # Straigt
-            self.behaviour.look_around(position)
-            time.sleep(3)
-            self.tools.cSubscribe()
-            amount_of_blobs, coords = self.see_picture()
-            self.tools.cUnsubscribe()
-            time.sleep(3)
-            if amount_of_blobs == 3:
-                return amount_of_blobs, coords
-        return amount_of_blobs, coords
+    #     return amount_of_blobs, coords
 
 
+    # def seek_blobs(self):
+    #     # Straigt "left", "right", "down", "up"
+    #     head_positions = ["straight", "down", "up" "left", "right"]
 
-    
-            
-        
-     
-        
-
-
+    #     self.globals.posProxy.goToPosture("Stand", 1)
+    #     for position in head_positions:
+    #         # Straigt
+    #         self.behaviour.look_around(position)
+    #         time.sleep(3)
+    #         self.tools.cSubscribe()
+    #         amount_of_blobs, coords = self.see_picture()
+    #         self.tools.cUnsubscribe()
+    #         time.sleep(3)
+    #         if amount_of_blobs == 3:
+    #             return amount_of_blobs, coords
+    #     return amount_of_blobs, coords
 
     def start(self):
         self.globals.setProxies()

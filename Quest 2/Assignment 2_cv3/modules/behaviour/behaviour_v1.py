@@ -26,15 +26,27 @@ class behaviour_v1():
         self.globals.setProxies()
         self.motion.init()
         signature = None
-
+        last_direction = 0
+        self.globals.speechProxy.say("I will begin my quest now!")
         self.globals.posProxy.goToPosture("Stand", 1)
         self.globals.posProxy.goToPosture("StandInit", 1)
-        self.walk_stop()
+        # self.walk_stop()
 
         # Keep collecting and searching for clues
         while signature != "Finish":
+            while self.walk_stop() == False:
+                # n_blobs, blobsList, direction = self.check_left_right()
+                # if n_blobs == 1 or n_blobs == 3:
+                #     last_direction = direction
+                #     break
+                last_direction = 0
+            
             clue = self.look_for_clues()
             distance, center, angle, signature, n_blobs, blobsList = clue
+
+            # if last_direction != 0 and signature == None:
+            #     self.globals.motProxy.moveTo(0, 0, -1 * last_direction)
+            #     last_direction = 0
             if signature:
                 self.follow_clue(clue)
             else:
@@ -62,15 +74,16 @@ class behaviour_v1():
             center = np.asarray([120, 160])
             pixels_from_center = blueBlob - center
             if pixels_from_center[1] > 60:
-                self.globals.motProxy.moveTo(0, 0.10, 0)
-            elif pixels_from_center[1] < -60:
                 self.globals.motProxy.moveTo(0, -0.10, 0)
+            elif pixels_from_center[1] < -60:
+                self.globals.motProxy.moveTo(0, 0.10, 0)
 
         if sonar[0] < 0.45 and sonar[1] < 0.45:
             for _ in range(3):
                 if sonar[0] < 0.45 and sonar[1] < 0.45:
                     self.globals.motProxy.moveTo(-0.10, 0, 0)
                     sonar = self.sonar.avg_sonar()
+
 
     ##########################################################################################
     #                                       MOVEMENT                                         #
@@ -85,29 +98,42 @@ class behaviour_v1():
         print("follow_clue")
         distance, center, angle, signature, n_blobs, blobsList = clue
 
+        if signature != "Finish" or signature != -1:
+            sentence = "Turning " + signature
+            self.globals.speechProxy.say(sentence)
+        elif signature == "Finish":
+            self.globals.speechProxy.say("Yay, I'm finished.")
         # Turn directions per signature
-        radians_per_signature = {"Left":0.5*np.pi, "Right": -0.5*np.pi, "Back": np.pi, "Finish": 0, -1: None}
+        radians_per_signature = {"Left":0.45*np.pi, "Right": -0.45*np.pi, "Back": 0.9*np.pi, "Finish": 0, -1: None}
 
         # calculate angle to move
         radians = radians_per_signature[signature]
-        radians -= angle
+        # radians -= angle
         
         # move angle
         self.globals.motProxy.moveTo(0, 0, radians)
-        self.walk_stop()
 
     def turn_straight(self, sonar=[]):
         print("Turn straight")
         if sonar == []:
             sonar = self.sonar.avg_sonar()
 
-        while sonar[0] < 0.40 or sonar[1] < 0.40:
+        while sonar[0] < 0.45 or sonar[1] < 0.45:
             if sonar[0] < 0.55 and sonar[1] < 0.55:
+                # Turn around untill straigth in front of wall
+                difference = sonar[0] - sonar[1]
+                while abs(difference) > 0.1:
+                    if difference < 0:
+                        self.globals.motProxy.moveTo(0, 0, -np.pi/9)
+                    else:
+                        self.globals.motProxy.moveTo(0, 0, np.pi/9)
+                    sonar = self.sonar.avg_sonar()
+                    difference = sonar[0] - sonar[1]
                 break
-            if sonar[0] < 0.40:
+            if sonar[0] < 0.45:
                 print("Turn right")
                 self.globals.motProxy.moveTo(0, 0, -np.pi/9)
-            elif sonar[1] < 0.40:
+            elif sonar[1] < 0.45:
                 print("Turn left")
                 self.globals.motProxy.moveTo(0, 0, np.pi/9)
             sonar = self.sonar.avg_sonar()
@@ -120,11 +146,22 @@ class behaviour_v1():
         self.globals.posProxy.goToPosture("StandInit", 1)
         sonar = self.sonar.avg_sonar()
 
+        distance_walked = 0
         while sonar[0] > 0.55 or sonar[1] > 0.55:
             self.turn_straight(sonar)
             self.globals.motProxy.moveTo(0.13, 0, 0)
+            distance_walked += 0.13
             sonar = self.sonar.avg_sonar()
+
+            if distance_walked > 0.65:
+                if sonar[0] < 0.55 and sonar[1] < 0.55:
+                    return True
+                return False
+
+            
         return True
+
+
 
     def wander_around(self):
         """
@@ -149,7 +186,7 @@ class behaviour_v1():
 
             # Turn to blobs if found and return n_blobs, blobsList
             elif n_blobs == 3:
-                self.globals.motProxy.moveTo(0,0, direction[0])
+                # self.globals.motProxy.moveTo(0,0, direction)
                 return n_blobs, blobsList
 
             distance = 0
@@ -175,9 +212,10 @@ class behaviour_v1():
         sonar = self.sonar.avg_sonar()
 
         # Go stand in front of wall
-        if sonar[0] < 0.55 and sonar[1] < 0.55:
+        if sonar[0] < 0.50 and sonar[1] < 0.50:
             self.globals.posProxy.goToPosture("StandInit", 1)
-            self.globals.motProxy.moveTo(-0.10, 0, 0)
+            self.globals.motProxy.moveTo(-0.08, 0, 0)
+            self.turn_straight()
 
         n_blobs, blobsList = self.search_3_blobs()
 
@@ -186,6 +224,7 @@ class behaviour_v1():
             return None, None, None, None, None, None
         
         # Return information of blobs
+        n_blobs, blobsList = self.vision.get_correct_blobsList(blobsList)
         distance, center, angle, signature = self.vision.getInformation(blobsList)
         return distance, center, angle, signature, n_blobs, blobsList
 
@@ -203,29 +242,36 @@ class behaviour_v1():
         # Did not find exactly enough blobs
         if max(n_blobs_per_colour) != 1 or min(n_blobs_per_colour) != 1:
             # Try 4 more times to find blobs
-            for _ in range(4):
-                # Get blue blob if possible
-                if len(blobsList[0]) > 0:
-                    blueBlob = blobsList[0][0][:2]
-                else:
-                    blueBlob = []
+            for i in range(4):
+                # Make picture slightly higher
+                n_blobs, blobsList = self.see_picture([0, -0.2])
+                n_blobs_per_colour = [len(colour) for colour in blobsList]
+                if n_blobs == 3 and min(n_blobs_per_colour) == max(n_blobs_per_colour) == 1:
+                    break
 
                 # Make picture slightly to the left
-                n_blobs, blobsList = self.see_picture([-0.15, -0.10])
+                n_blobs, blobsList = self.see_picture([-0.15, -0.15])
                 n_blobs_per_colour = [len(colour) for colour in blobsList]
                 if n_blobs == 3 and min(n_blobs_per_colour) == max(n_blobs_per_colour) == 1:
                     break
             
                 # Make picture slightly to the right
-                n_blobs, blobsList = self.see_picture([0.15, -0.10])
+                n_blobs, blobsList = self.see_picture([0.15, -0.15])
                 n_blobs_per_colour = [len(colour) for colour in blobsList]
                 if n_blobs == 3 and min(n_blobs_per_colour) == max(n_blobs_per_colour) == 1:
                     break
-
-                # Adjust position and take new picture
-                self.adjust_position(blueBlob)
-                n_blobs, blobsList = self.see_picture()
-                n_blobs_per_colour = [len(colour) for colour in blobsList]
+                
+                # Get blue blob if possible
+                if len(blobsList[0]) > 0:
+                    blueBlob = blobsList[0][0][:2]
+                    # Adjust position and take new picture
+                    self.adjust_position(blueBlob)
+                    n_blobs, blobsList = self.see_picture()
+                    n_blobs_per_colour = [len(colour) for colour in blobsList]
+                elif i == 0:
+                    self.globals.motProxy.moveTo(-0.1, 0, 0)
+                else:
+                    break
 
                 # Break out of for loop if correct blobs are found
                 if n_blobs == 3 and min(n_blobs_per_colour) == max(n_blobs_per_colour) == 1:
@@ -237,7 +283,7 @@ class behaviour_v1():
 
         return -1, []
 
-    def see_picture(self, headPos=[0, -0.10]):
+    def see_picture(self, headPos=[0, -0.15]):
         print("see_picture")
         # Take snapshot
         self.motion.setHead(headPos[0], headPos[1])
@@ -263,14 +309,34 @@ class behaviour_v1():
         self.tools.cUnsubscribe()
         return amount_of_blobs, coords
 
-    def turn_head(self):
+    def turn_head(self, in_front=True):
+        print("Turn_head")
         # Lookleft
-        directions = [[0, -0.10], [0.5*np.pi, -0.10], [-0.5*np.pi, -0.10]]
+        if in_front:
+            directions = [0, 0.45*np.pi, -1.05*np.pi]
+        else:
+            directions = [0.45*np.pi, -1.05*np.pi]
 
         for direction in directions:
-            n_blobs, blobsList = self.see_picture(direction)
+            self.globals.motProxy.moveTo(0, 0, direction)
+            # self.turn_straight()
+            n_blobs, blobsList = self.see_picture()
             n_blobs_per_colour = [len(colour) for colour in blobsList]
             if n_blobs == 3 and min(n_blobs_per_colour) == max(n_blobs_per_colour) == 1:
+                if direction < 0:
+                    direction = -0.45 * np.pi
                 return n_blobs, blobsList, direction
-        return -1, [], []
+            elif len(blobsList[0]) == 1:
+                if direction < 0:
+                    direction = -0.45 * np.pi
+                return 1, blobsList, direction
+        self.globals.motProxy.moveTo(0, 0, 0.45 * np.pi)
+        return -1, [], 0
    
+    def check_left_right(self):
+        n_blobs, blobsList, direction = self.turn_head(in_front=False)
+        if n_blobs == 3:
+            return n_blobs, blobsList, direction
+        elif n_blobs == 1:
+            return n_blobs, blobsList, direction
+        return -1, [], 0

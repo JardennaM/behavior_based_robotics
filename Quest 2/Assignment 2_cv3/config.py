@@ -19,7 +19,7 @@ moduledict["main"]          = "main_v1"
 moduledict["globals"]       = [1, "globals"]
 moduledict["motion"]        = [1, "motion_v1"]
 moduledict["sonar"]         = [1,"sonar_v1"]
-moduledict["tools"]         = [1, "tools_v2"]
+moduledict["tools"]         = [1, "tools_v3"]
 moduledict["vision"]        = [1, "vision_v1"]
 moduledict["behaviour"]     = [1, "behaviour_v1"]
 

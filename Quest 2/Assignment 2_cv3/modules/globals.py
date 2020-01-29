@@ -11,6 +11,7 @@ class globals:
         self.vidProxy = ALProxy("ALVideoDevice", self.ipadress, 9559)
         self.sonarProxy = ALProxy("ALSonar", self.ipadress, 9559)
         self.memoryProxy = ALProxy("ALMemory", self.ipadress, 9559)
+        self.speechProxy = ALProxy("ALTextToSpeech", self.ipadress, 9559)
 
    
 
