@@ -17,10 +17,10 @@ class vision_v1():
     def setDependencies(self, modules):
         self.globals = modules.getModule("globals")
 
-    #Filter HSV Image with given values
+    #Filter RGB Image with given values
     def filterImage(self, img, min_bgr, max_bgr):
         '''
-        Input: HSV Image, 2 List of min and max HSV values
+        Input: RGB Image, 2 List of min and max RGB values
         Output: Black White Matrix/Image
         '''
         ## implement your filtering here.
@@ -36,7 +36,7 @@ class vision_v1():
     #Find Circle in a filtered image
     def findCircle(self,imgMat):
         '''
-        Input: Black Whit Image
+        Input: Black White Image
         Return: List of center position of found Circle
         '''
         img = imgMat
@@ -61,14 +61,21 @@ class vision_v1():
 
 
     def filter_find_circle(self, image, bgr_low, bgr_high):
-        """Filters image to black and white inbetween color range. 
-        Returns circles found in black and white image"""
+        """
+        Input: RGB image, lower RGB threshold, higher RGB threshold
+        Filters image to black and white inbetween color range. 
+        Returns circles found in black and white image
+        """
         bw_image = self.filterImage(image, bgr_low, bgr_high)
         blobs = self.findCircle(bw_image)
         return blobs, bw_image
 
     def cutout_paper(self, image, blueBlobs):
-        """Masks paper out of the whole image by filling up the shape where the blueBlob was found"""
+        """
+        Input: Image, xy position of blue Circle
+        Masks paper out of the whole image by filling up the shape from center of largest contour found
+        Returns: Blacked out image with only white paper preserved
+        """
         # Prepare image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         ret, thresh = cv2.threshold(gray, 160, 255, 0)
@@ -94,6 +101,7 @@ class vision_v1():
         # Fill mask from blob
         cv2.floodFill(mask, mask2, tuple(mid_paper[0]), 0)
         image[mask.astype(np.bool), :] = 0
+
         return image
 
     def slice_coords(self, blobsList):
@@ -114,6 +122,8 @@ class vision_v1():
     def getBlobsData(self, image):
         '''
         Input: Image
+        Function: Will find the centers (in pixel coordinates) of blue, green and red circles
+        in image using HoughCircles function from OpenCV
         Return: numberOfBlobsFound , [List [center-pixels] of blobs]
         '''
 
@@ -170,7 +180,7 @@ class vision_v1():
     # Get Average Distance between multiple blobs
     def calcAvgBlobDistance(self, blobList):
         '''
-        Input: [Pink, Blue, Orange]
+        Input: [Blue, Green, Red]
         Output: Average Distance in pixels
         '''
 
@@ -193,7 +203,7 @@ class vision_v1():
     # Find centre of a Landmark
     def calcMidLandmark(self, blobList):
         '''
-        Input: [Pink, Blue, Orange]
+        Input: [Blue, Green, Red]
         Output: center pixel as (x,y)
         '''
         if blobList == []:
@@ -202,7 +212,7 @@ class vision_v1():
 
     def calcDistanceFromCenter(self, blobList, center):
         '''
-        Input: [Pink, Blue, Orange]
+        Input: [Blue, Green, Red]
         Output: Avarege Distance in pixels per blob
         '''
         return [numpy.linalg.norm(blob - center) for blob in blobList]
@@ -224,12 +234,12 @@ class vision_v1():
 
         # Return only horizontal angle
     
-        return abs(center[0])
+        return center[0]
 
     # Find the Signature
     def findSignature(self,blobList):
         '''
-        Input: [Pink, Blue, Orange]
+        Input: [Blue, Green, Red]
         Output: Signature
         '''
         # Calculate relative position of blue for green and red respectively
@@ -257,6 +267,10 @@ class vision_v1():
         
 
     def get_correct_blobsList(self, blobsList):
+        """
+        Input: found blobsList
+        Output: Returns list with 3 circles coordinates if there is one circle of each colour
+        """
         lenList = [len(colour) for colour in blobsList]
         if max(lenList) == min(lenList) == 1:
             new_blobsList = []
@@ -266,6 +280,10 @@ class vision_v1():
         return 0, []
 
     def getInformation(self, coords):
+        """
+        Input: list of xy Coordinates of 3 circles
+        Output: Various calculations based on xy coordinates
+        """
         distance = self.calcAvgBlobDistance(coords)
         center = self.calcMidLandmark(coords)
         angle = self.calcAngleLandmark(center)

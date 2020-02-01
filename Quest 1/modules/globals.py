@@ -2,7 +2,7 @@
 # Mio: "146.50.60.39"
 from naoqi import ALProxy
 class globals:
-    ipaddress = "146.50.60.53"
+    ipaddress = "146.50.60.55"
 
     def setDependencies(self, module):
         pass

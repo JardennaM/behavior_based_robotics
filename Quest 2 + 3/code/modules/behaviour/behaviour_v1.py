@@ -21,7 +21,7 @@ class behaviour_v1():
 
     def solve_maze(self):
         """
-        Robot will try to find the finish of a maze.
+        Robot will try to find the finish of a maze. Based on sonar and visual clues
         """
         self.globals.setProxies()
         self.motion.init()
@@ -30,23 +30,17 @@ class behaviour_v1():
         self.globals.speechProxy.say("I will begin my quest now!")
         self.globals.posProxy.goToPosture("Stand", 1)
         self.globals.posProxy.goToPosture("StandInit", 1)
-        # self.walk_stop()
 
         # Keep collecting and searching for clues
         while signature != "Finish":
             while self.walk_stop() == False:
-                # n_blobs, blobsList, direction = self.check_left_right()
-                # if n_blobs == 1 or n_blobs == 3:
-                #     last_direction = direction
-                #     break
-                last_direction = 0
+                n_blobs, blobsList, direction = self.check_left_right()
+                if n_blobs == 3:
+                    break
             
             clue = self.look_for_clues()
             distance, center, angle, signature, n_blobs, blobsList = clue
 
-            # if last_direction != 0 and signature == None:
-            #     self.globals.motProxy.moveTo(0, 0, -1 * last_direction)
-            #     last_direction = 0
             if signature:
                 self.follow_clue(clue)
             else:
@@ -67,7 +61,6 @@ class behaviour_v1():
         Input: xy-coordinates of blue blob
         Function: adjusts position according to sonar and blue blob
         '''
-        print("Adjust position")
         sonar = self.sonar.avg_sonar()
 
         if blueBlob != []:
@@ -93,9 +86,7 @@ class behaviour_v1():
         """
         Input: distance, center, angle, signature, n_blobs, blobsList
         Robot turns according to signature found and corrects for angle of image.
-        Robot then moves untill a wall is found
         """
-        print("follow_clue")
         distance, center, angle, signature, n_blobs, blobsList = clue
 
         if signature != "Finish" or signature != -1:
@@ -108,13 +99,17 @@ class behaviour_v1():
 
         # calculate angle to move
         radians = radians_per_signature[signature]
-        # radians -= angle
+        radians -= angle
         
         # move angle
         self.globals.motProxy.moveTo(0, 0, radians)
 
     def turn_straight(self, sonar=[]):
-        print("Turn straight")
+        """
+        Input: last sonar measurement (optional)
+        Function: Avoids collisions with walls. Will keep adjusting course until no collision danger is present.
+        When both sonars are close to a wall, the robot will turn to the wall.
+        """
         if sonar == []:
             sonar = self.sonar.avg_sonar()
 
@@ -140,15 +135,16 @@ class behaviour_v1():
 
     def walk_stop(self):
         """
-        Robot walks using sonar and stops when encountering a wall.
+        Robot walks using sonar and stops when encountering a wall or after 65 centimeters.
+        Output: True when robot is in front of wall. False if 65 centimeters has be traversed.
         """
-        print("walk_stop")
         self.globals.posProxy.goToPosture("StandInit", 1)
         sonar = self.sonar.avg_sonar()
 
         distance_walked = 0
         while sonar[0] > 0.55 or sonar[1] > 0.55:
             self.turn_straight(sonar)
+            # self.motion.setHead(0, -0.15)
             self.globals.motProxy.moveTo(0.13, 0, 0)
             distance_walked += 0.13
             sonar = self.sonar.avg_sonar()
@@ -156,19 +152,26 @@ class behaviour_v1():
             if distance_walked > 0.65:
                 if sonar[0] < 0.55 and sonar[1] < 0.55:
                     return True
-                return False
-
-            
+                return False            
         return True
 
-
+    def calc_walk_distance(self, sonar):
+        """
+        Input: Sonar measurement.
+        Output: Safe travelling distance for robot. (Minimum of 20 centimeters)
+        """
+        distance = min(sonar) * 0.5
+        if distance < 0.2:
+            distance = 0.2
+        return distance
 
     def wander_around(self):
         """
-        Robot will walk until encountering a wall and than turn into the free space. 
-        After that it will walk 1 meter so it stands in the middle of a new cell
+        Robot will try to find clue in section of the maze in a semi-random manner.
+        For 10 tries the robot will take pictures and reposition if no landmark is found.
+        Repositioning happens by turning in a free direction and walking 50 centimeters.
+        Returns: n_blobs, blobsList (-1, [] if nothing is found)
         """
-        print("wander_around")
         attemps = 0
         while attemps < 10:
 
@@ -208,7 +211,6 @@ class behaviour_v1():
         Robot searches for clues and returns information if found
         Output: distance, center, angle, signature, n_blobs, blobsList
         """
-        print("look_for_clues")
         sonar = self.sonar.avg_sonar()
 
         # Go stand in front of wall
@@ -233,8 +235,6 @@ class behaviour_v1():
         Funtion: Find 3 blobs on paper by looking in front, left, behind and to the right.
         Output: NumberOfBlobs and blobsList (x, y coordinates) if found otherwise None, None
         """
-        print("search_3_blobs")
-
         # Take picture
         n_blobs, blobsList = self.see_picture()
         n_blobs_per_colour = [len(colour) for colour in blobsList]
@@ -284,7 +284,11 @@ class behaviour_v1():
         return -1, []
 
     def see_picture(self, headPos=[0, -0.15]):
-        print("see_picture")
+        """
+        Input: Head position for the robot to take the picture in
+        Function: Makes robot take picture in certain head position and using the vision module will try to detect blobs
+        Returns: number of blobs, xy coordinates of blobs, black and white image, reconstruction image
+        """
         # Take snapshot
         self.motion.setHead(headPos[0], headPos[1])
         self.tools.cSubscribe()
@@ -310,7 +314,12 @@ class behaviour_v1():
         return amount_of_blobs, coords
 
     def turn_head(self, in_front=True):
-        print("Turn_head")
+        """
+        Input: in_front: Flag to include or exclude taking a picture of in front of the robot
+        Function: Lets the robot take pictures (in front), left and right to find clues by
+        turning the robot.
+        Returns: number of blobs, blobsList, direction where clue was found
+        """
         # Lookleft
         if in_front:
             directions = [0, 0.45*np.pi, -1.05*np.pi]
@@ -334,6 +343,9 @@ class behaviour_v1():
         return -1, [], 0
    
     def check_left_right(self):
+        """
+        Function: Makes picture left and right of robot and returns if it has found blobs
+        """
         n_blobs, blobsList, direction = self.turn_head(in_front=False)
         if n_blobs == 3:
             return n_blobs, blobsList, direction
